@@ -1182,7 +1182,7 @@ end
 
 function EnhaPrio:OnEnable()
 	local playerClass, englishClass = UnitClass("player")
-	if UnitLevel("player") < 81 then
+	if UnitLevel("player") < 70 then
 	    swPrint(L.LevelTooLow)
 		mainFrame:Hide()
 		return false
