@@ -1,0 +1,5 @@
+<Bindings>
+    <Binding name="ENHAPRIOTOGGLE" header="ENHAPRIOHEADER">EnhaPrio:Toggle();</Binding>
+    <Binding name="ENHAPRIOTOGGLECDS">EnhaPrio:ToggleCDS();</Binding>
+    <Binding name="ENHAPRIOTOGGLESETTINGS">EnhaPrio:OpenOptions();</Binding>
+</Bindings>
