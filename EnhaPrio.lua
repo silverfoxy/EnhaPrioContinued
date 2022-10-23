@@ -490,7 +490,9 @@ local Actions = {
 function isCastable(spellName)
 	-- check if you can cast that spell in one gcd
 	--local _, GCD = GetSpellCooldown(Spells.LB)
+	if not IsUsableSpell(spellName) then return end
 	local start, duration = GetSpellCooldown(spellName)
+	--local start, duration = 0,0
 	return duration ~= nil and start ~= nil
 	--return duration == GCD or duration == 0 or duration < 1
 end
@@ -498,7 +500,9 @@ end
 -- checks if the spell is not on cooldown
 function isNotOnCD(spellName)
     local _, GCD = GetSpellCooldown(Spells.LB)
+	if not IsUsableSpell(spellName) then return end
     local start, duration = GetSpellCooldown(spellName)
+	--local start, duration = 0,0
     if duration == nil then
         duration = 100
     end
@@ -507,6 +511,7 @@ end
 
 -- add a spell to the queue
 function addToQueue(spell)
+	if not IsUsableSpell(spell) then return end
     local start, duration = GetSpellCooldown(spell)
 	local cdLeft = start + duration - GetTime()
 	if cdLeft < 20 then
@@ -676,35 +681,37 @@ function EnhaPrio:reCalculate()
 		self:refreshQueue()
 
 	    -- show maelstrom wep
-	    if mode == "Enhancement" and self.db.char.displayMW and mwAmount > 0 and ranged then
-	        mainFrame.text:SetText(mwAmount)
-	        if mwAmount == 1 then
-	        	mainFrame.text:SetTextColor(1, 1, 1, 1)
-			elseif mwAmount == 2 then
-			    mainFrame.text:SetTextColor(1, 1, 0, 1)
-			elseif mwAmount == 3 then
-			    mainFrame.text:SetTextColor(1, 1, 0, 1)
-			elseif mwAmount == 4 then
-			    mainFrame.text:SetTextColor(1, .5, 0, 1)
-			elseif mwAmount == 5 then
-			    mainFrame.text:SetTextColor(1, 0, 0, 1)
-			end
-		elseif mode == "Elemental" and self.db.char.displayMW and lsStack > 0 and ranged then
-		    mainFrame.text:SetText(lsStack)
-	        if lsStack > 0 and lsStack < 6 then
-	        	mainFrame.text:SetTextColor(1, 1, 1, 1)
-			elseif lsStack == 6 then
-			    mainFrame.text:SetTextColor(1, 1, 0, 1)
-			elseif lsStack == 7 then
-			    mainFrame.text:SetTextColor(1, 1, 0, 1)
-			elseif lsStack == 8 then
-			    mainFrame.text:SetTextColor(1, .5, 0, 1)
-			elseif lsStack == 9 then
-			    mainFrame.text:SetTextColor(1, 0, 0, 1)
-			end
-		else
-		    mainFrame.text:SetText("")
-	    end
+		-- TODO
+		--Attempt to compair number with string
+	    --if mode == "Enhancement" and self.db.char.displayMW and mwAmount > 0 and ranged then
+	    --    mainFrame.text:SetText(mwAmount)
+	    --    if mwAmount == 1 then
+	    --    	mainFrame.text:SetTextColor(1, 1, 1, 1)
+		--	elseif mwAmount == 2 then
+		--	    mainFrame.text:SetTextColor(1, 1, 0, 1)
+		--	elseif mwAmount == 3 then
+		--	    mainFrame.text:SetTextColor(1, 1, 0, 1)
+		--	elseif mwAmount == 4 then
+		--	    mainFrame.text:SetTextColor(1, .5, 0, 1)
+		--	elseif mwAmount == 5 then
+		--	    mainFrame.text:SetTextColor(1, 0, 0, 1)
+		--	end
+		--elseif mode == "Elemental" and self.db.char.displayMW and lsStack > 0 and ranged then
+		--    mainFrame.text:SetText(lsStack)
+	    --    if lsStack > 0 and lsStack < 6 then
+	    --    	mainFrame.text:SetTextColor(1, 1, 1, 1)
+		--	elseif lsStack == 6 then
+		--	    mainFrame.text:SetTextColor(1, 1, 0, 1)
+		--	elseif lsStack == 7 then
+		--	    mainFrame.text:SetTextColor(1, 1, 0, 1)
+		--	elseif lsStack == 8 then
+		--	    mainFrame.text:SetTextColor(1, .5, 0, 1)
+		--	elseif lsStack == 9 then
+		--	    mainFrame.text:SetTextColor(1, 0, 0, 1)
+		--	end
+		--else
+		--    mainFrame.text:SetText("")
+	    --end
 
 	    -- flame shock timer
 	    if fsLeft > 0 and self.db.char.fsTracker then
@@ -808,7 +815,7 @@ function EnhaPrio:reCalculate()
 				local start, duration = GetSpellCooldown(spell)
 				local left = round(start + duration - GetTime())
 				if duration ~= GCD then -- spell in cooldown
-				    CooldownFrame_SetTimer(f.cooldown, start, duration, 1)
+				    --CooldownFrame_SetTimer(f.cooldown, start, duration, 1)
 				    if left < 2 then
     				    f.cooldownText:SetText("")
     				else
@@ -817,9 +824,9 @@ function EnhaPrio:reCalculate()
     			else -- spell not in cooldown
     			    f.cooldownText:SetText("")
     			    if i == 1 then
-    			        CooldownFrame_SetTimer(f.cooldown, startGCD, GCD, 1)
+    			        --CooldownFrame_SetTimer(f.cooldown, startGCD, GCD, 1)
     			    else
-    			        CooldownFrame_SetTimer(f.cooldown, 0, 0, 0)
+    			        --CooldownFrame_SetTimer(f.cooldown, 0, 0, 0)
     			    end
 				end
 				if i == 1 or left < 2 then
@@ -1182,7 +1189,7 @@ end
 
 function EnhaPrio:OnEnable()
 	local playerClass, englishClass = UnitClass("player")
-	if UnitLevel("player") < 70 then
+	if UnitLevel("player") < 61 then
 	    swPrint(L.LevelTooLow)
 		mainFrame:Hide()
 		return false
@@ -1236,7 +1243,7 @@ function EnhaPrio:ResolveSpec()
 		return false;
 	end
 
-    local currentSpec = GetSpecialization()
+    local currentSpec = GetSpecialization and GetSpecialization() or GetActiveTalentGroup and GetActiveTalentGroup()
 	-- what spec are we using
 	if currentSpec == 2 and self.db.char.enhancement then
 		mode = "Enhancement"
@@ -1246,9 +1253,11 @@ function EnhaPrio:ResolveSpec()
 	else
 	    mode = nil
 	end
+	print(mode)
 
-	local _, _, _, _, currentRank = GetTalentInfoByID(16)
-	talentUF = currentRank
+	-- TODO
+	--local _, _, _, _, currentRank = GetTalentInfoByID(16)
+	--talentUF = currentRank
 
 	if mode ~= nil then
 		self:Run()
