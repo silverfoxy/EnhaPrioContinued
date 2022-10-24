@@ -91,6 +91,21 @@ local Priority = {
 	    --"HS", -- healing surge for when the shit hits the fan
 		"LS", -- Lightning Shield if it isn't active on you
 
+		"WF", -- weapon buffs (windfury)
+		"FT", -- weapon buffs (flametongue)
+
+		"SR", -- Shamanistic Rage when you have less than 20% mana
+
+		"LB", -- Lightning Bolt if there are 5 Maelstrom stacks
+		"FS", -- Flame Shock if there's less than 1.5 sec left on the dot
+		"SSb", -- Stormstrike if there's no ss buff on the target
+		"LS", -- Lightning Shield if it isn't active on you
+		"MT", -- Magma Totem if you don't have one down
+		"ES", -- Earth Shock
+		"SS", -- Stormstrike even if there's a ss buff on the target
+		"LL", -- Lava Lash
+		"FN",  -- Fire Nova
+
 		-- damage spells
 
         "AOEMT", -- fire nova totem, when under 5 sec left
@@ -233,8 +248,9 @@ local Spells = {
 	FR = GetSpellInfo(51533), -- feral spirit
 	FE = GetSpellInfo(2894), -- fire elemental totem
 	FS = GetSpellInfo(8050), -- flame shock
-	MT = GetSpellInfo(8190), -- magma totem
-	FN = GetSpellInfo(1535), -- fire nova
+	--MT = GetSpellInfo(8190), -- magma totem
+	MT = "Magma Totem VII", -- magma totem
+	FN = GetSpellInfo(61654), -- fire nova
 	ST = GetSpellInfo(3599), -- searing totem
 	LA = GetSpellInfo(51505), -- Lava Burst
 	EM = GetSpellInfo(16166), -- Elemental Mastery
@@ -598,6 +614,43 @@ Actions = {
 				addToQueue(Spells.FN);
 			end
 		end,
+
+    	AOEMT = function ()
+    	    if isCastable(Spells.MT) and totemTimeLeft < 5 then
+    	        addToQueue(Spells.MT)
+    		end
+    	end,
+    	AOEUE = function ()
+    	    if isCastable(Spells.UE) and ranged then
+    	        addToQueue(Spells.UE)
+    		end
+    	end,
+    	AOEFS = function ()
+    	    if isCastable(Spells.FS) and fsLeft < 10 and hasUF then
+    	        addToQueue(Spells.FS)
+    		end
+    	end,
+    	AOELL = function ()
+    	    if isCastable(Spells.LL) and fsLeft > 20 then
+    	        addToQueue(Spells.LL)
+    		end
+    	end,
+    	AOEFN = function ()
+    	    if isCastable(Spells.FN) then
+    	        addToQueue(Spells.FN)
+    		end
+    	end,
+    	AOECL = function ()
+    	    if isCastable(Spells.CL) and mwAmount == 5 then
+    	        addToQueue(Spells.CL)
+    		end
+    	end,
+    	AOESS = function ()
+    	    if isCastable(Spells.SS) then
+    	        addToQueue(Spells.SS)
+    		end
+    	end
+
 	}
 end
 
@@ -757,7 +810,7 @@ function EnhaPrio:refreshQueue()
 	totemTimeLeft = GetTotemTimeLeft(1)
 
 	-- weapon buffs
-	hasMH, _, _, hasOH = GetWeaponEnchantInfo()
+	hasMH, _, _, _, hasOH = GetWeaponEnchantInfo()
 
 	-- mana situation
 	local mana = UnitPower('player');
