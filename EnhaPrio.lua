@@ -88,7 +88,7 @@ local Priority = {
 
 	},
 	EnhancementAOE = { -- priorities used in enhancement aoe
-	    "HS", -- healing surge for when the shit hits the fan
+	    --"HS", -- healing surge for when the shit hits the fan
 		"LS", -- Lightning Shield if it isn't active on you
 
 		-- damage spells
@@ -166,7 +166,8 @@ local hasAN = false
 local hasAS = false
 local talentUF = false
 local castLB = false
---local lowMana = false
+local lowMana = false
+local hasMS = false
 local hasMH = false
 local hasOH = false
 local timeLeft = 0
@@ -196,7 +197,7 @@ local defaults = {
 		locked = false,
 		clickthru = false,
 		updateFrequency = .02,
-		--manaThreshold = 20,
+		manaThreshold = 20,
 		maxQueue = 4,
 		displayMW = true,
 		queueDirection = "RIGHT",
@@ -221,10 +222,12 @@ local Spells = {
 	LL = GetSpellInfo(60103), -- lava lash
 	ES = GetSpellInfo(25454),
 	FRS = GetSpellInfo(8056), -- frost shock
-	MS = GetSpellInfo(51530), -- maelstrom weapon
+	--MS = GetSpellInfo(51530), -- maelstrom weapon
+	MS = GetSpellInfo(51532),
 	WF = GetSpellInfo(58804),
 	FT = GetSpellInfo(58790),
-	LB = GetSpellInfo(403), -- lightning bolt
+	--LB = GetSpellInfo(403), -- lightning bolt
+	LB = GetSpellInfo(25449),
 	LS = GetSpellInfo(324), -- lightning shield
 	SR = GetSpellInfo(30823),
 	FR = GetSpellInfo(51533), -- feral spirit
@@ -248,7 +251,7 @@ local Spells = {
 	TW = GetSpellInfo(80353), -- Time Warp
 	AN = GetSpellInfo(16188), -- Ancestral Swiftness
 	UFD = GetSpellInfo(117012), --Unleash Fury (debuff)
-	HS = GetSpellInfo(8004), -- Healing Surge
+	--HS = GetSpellInfo(8004), -- Healing Surge
 	CL = GetSpellInfo(421) -- Chain Lightning
 }
 
@@ -678,6 +681,7 @@ function EnhaPrio:refreshQueue()
 
 	-- players buffs (maelstrom, lightning shield, etc.)
 	noLS = true
+	hasMS = false
 	hasUF = false
 	hasUFD = false
 	mwAmount = 0
@@ -686,12 +690,15 @@ function EnhaPrio:refreshQueue()
 	hasAN = false
 	hasAS = false
 	for i=1,40 do
-		local name, _, _, count = UnitBuff("player", i)
+		local name, _, count = UnitBuff("player", i)
 		if not name then
 			break -- end of buffs
 		end
 		if name == Spells.MS then
 		    mwAmount = count
+			if count == 5 then
+				hasMS = true
+			end
 		elseif name == Spells.LS then
 			lsStack = count
 			noLS = false
@@ -751,6 +758,15 @@ function EnhaPrio:refreshQueue()
 
 	-- weapon buffs
 	hasMH, _, _, hasOH = GetWeaponEnchantInfo()
+
+	-- mana situation
+	local mana = UnitPower('player');
+  	local maxMana = UnitPowerMax('player');
+  	if mana < ((EnhaPrio.db.char.manaThreshold / 100) * maxMana) then
+  		lowMana = true;
+  	else
+  		lowMana = false;
+  	end 
 
 	-- ranges
 	melee = IsSpellInRange(Spells.FS, "target") == 1 -- if you are in range of melee attacks (using flame shock here too... )
@@ -927,7 +943,7 @@ function EnhaPrio:reCalculate()
 				local start, duration = GetSpellCooldown(spell)
 				local left = round(start + duration - GetTime())
 				if duration ~= GCD then -- spell in cooldown
-				    --CooldownFrame_SetTimer(f.cooldown, start, duration, 1)
+				    CooldownFrame_Set(f.cooldown, start, duration, 1)
 				    if left < 2 then
     				    f.cooldownText:SetText("")
     				else
@@ -936,9 +952,9 @@ function EnhaPrio:reCalculate()
     			else -- spell not in cooldown
     			    f.cooldownText:SetText("")
     			    if i == 1 then
-    			        --CooldownFrame_SetTimer(f.cooldown, startGCD, GCD, 1)
+    			        CooldownFrame_Set(f.cooldown, startGCD, GCD, 1)
     			    else
-    			        --CooldownFrame_SetTimer(f.cooldown, 0, 0, 0)
+    			        CooldownFrame_Set(f.cooldown, 0, 0, 0)
     			    end
 				end
 				if i == 1 or left < 2 then
@@ -1448,9 +1464,9 @@ function EnhaPrio:SPELL_UPDATE_COOLDOWN(...)
 	 	local left = start + duration - GetTime()
 	 	]]
 
-	 	--if self.db.char.displayGCD and GCD == duration and mode == "Enhancement" then
-	    --    CooldownFrame_SetTimer(spellQueueFrames[1].cooldown, GCDstart, GCD, 1)
-	 	--end
+	 	if self.db.char.displayGCD and GCD == duration and mode == "Enhancement" then
+	        CooldownFrame_Set(spellQueueFrames[1].cooldown, GCDstart, GCD, 1)
+	 	end
 	end
 end
 
@@ -1510,6 +1526,16 @@ function EnhaPrio:GetOptions()
 				get = "GetProperty",
 				set = "SetProperty",
 				order = 1,
+			},
+			manaThreshold = {
+				type = "range",
+				name = "Low Mana Threshold (%)",
+				desc = "The point where Shamanistic Rage will be suggested.",
+				min = 5,
+				max = 100,
+				step = 5,
+				get = "GetProperty",
+				set = "SetProperty",
 			},
 			enableGroup = {
 			    type = "group",
