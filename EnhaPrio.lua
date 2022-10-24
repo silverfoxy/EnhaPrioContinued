@@ -42,33 +42,49 @@ or comment out with "--" if not wanted. ]]
 
 local Priority = {
 	Enhancement = { -- priorities used in enhancement spec
-	    "HS", -- healing surge for when the shit hits the fan
+	    --"HS", -- healing surge for when the shit hits the fan
+		--"LS", -- Lightning Shield if it isn't active on you
+
+		---- actual damage spells
+
+		--"EM", -- Elemental Mastery
+		--"FE", -- Fire Elemental, if Bloodlust up
+		--"AS", -- Ascendance
+
+		--"ST0", -- Searing Totem, with no fire totem up
+		--"EB1+", -- Elemental Blast, if you have it and mw > 1
+		--"UEF", -- Unleash elements, if specced to unleash fury
+		--"LB5", -- Lightning Bolt if there are 5 Maelstrom stacks
+		--"SS", -- Stormstrike / Stormblast
+		--"FS0", -- Flame Shock if there's unleash flame buff and it's not ticking
+		--"LL", -- Lava Lash, with 5 searing flames stacks
+		--"FS", -- Flame Shock if there's unleash flame buff and has less than 3s remaining
+		--"UE", -- Unleash elements
+		--"LB3+", -- mw stacks more than 3, and uf debuff on (not during Ascendance)
+		--"AN", -- Ancestral Swiftness, if you have it
+		--"LBA", -- Lightning Bolt if ancestral switness is up
+		---- "FSX", -- Flame Shock, if UF is up
+		--"FRS", -- Frost Shock
+		--"FR", -- feral spirit
+		--"EE", -- Earth Elemental Totem
+		--"LB1+", -- lightning bolt when more than 1 stack of mw (not during Ascendance)
+		----"STX" -- searing totem, even with stacks up
+
+		--Wrath
+		"WF", -- weapon buffs (windfury)
+		"FT", -- weapon buffs (flametongue)
+
+		"SR", -- Shamanistic Rage when you have less than 20% mana
+
+		"LB", -- Lightning Bolt if there are 5 Maelstrom stacks
+		"FS", -- Flame Shock if there's less than 1.5 sec left on the dot
+		"SSb", -- Stormstrike if there's no ss buff on the target
 		"LS", -- Lightning Shield if it isn't active on you
-
-		-- actual damage spells
-
-		"EM", -- Elemental Mastery
-		"FE", -- Fire Elemental, if Bloodlust up
-		"AS", -- Ascendance
-
-		"ST0", -- Searing Totem, with no fire totem up
-		"EB1+", -- Elemental Blast, if you have it and mw > 1
-		"UEF", -- Unleash elements, if specced to unleash fury
-		"LB5", -- Lightning Bolt if there are 5 Maelstrom stacks
-		"SS", -- Stormstrike / Stormblast
-		"FS0", -- Flame Shock if there's unleash flame buff and it's not ticking
-		"LL", -- Lava Lash, with 5 searing flames stacks
-		"FS", -- Flame Shock if there's unleash flame buff and has less than 3s remaining
-		"UE", -- Unleash elements
-		"LB3+", -- mw stacks more than 3, and uf debuff on (not during Ascendance)
-		"AN", -- Ancestral Swiftness, if you have it
-		"LBA", -- Lightning Bolt if ancestral switness is up
-		-- "FSX", -- Flame Shock, if UF is up
-		"FRS", -- Frost Shock
-		"FR", -- feral spirit
-		"EE", -- Earth Elemental Totem
-		"LB1+", -- lightning bolt when more than 1 stack of mw (not during Ascendance)
-		--"STX" -- searing totem, even with stacks up
+		"MT", -- Magma Totem if you don't have one down
+		"ES", -- Earth Shock
+		"SS", -- Stormstrike even if there's a ss buff on the target
+		"LL", -- Lava Lash
+		"FN"  -- Fire Nova
 
 	},
 	EnhancementAOE = { -- priorities used in enhancement aoe
@@ -203,10 +219,14 @@ local Spells = {
 	--SS = GetSpellInfo(17364), -- stormstrike
 	SS = GetSpellInfo(51876), -- stormstrike
 	LL = GetSpellInfo(60103), -- lava lash
+	ES = GetSpellInfo(25454),
 	FRS = GetSpellInfo(8056), -- frost shock
 	MS = GetSpellInfo(51530), -- maelstrom weapon
+	WF = GetSpellInfo(58804),
+	FT = GetSpellInfo(58790),
 	LB = GetSpellInfo(403), -- lightning bolt
 	LS = GetSpellInfo(324), -- lightning shield
+	SR = GetSpellInfo(30823),
 	FR = GetSpellInfo(51533), -- feral spirit
 	FE = GetSpellInfo(2894), -- fire elemental totem
 	FS = GetSpellInfo(8050), -- flame shock
@@ -236,255 +256,347 @@ local Spells = {
 local addToQueue, check, isCastable, isNotOnCD, round, swPrint, table_compare, table_find
 
 -- here are the different actions (adding stuff to queue according to the situation)
-local Actions = {
-	FE = function ()
-		-- cast fire elemental totem only when you have bloodlust/heroism on
-		if isCastable(Spells.FE) and hasBL and EnhaPrio.db.char.useLongCD then
-			addToQueue(Spells.FE)
-		end
-	end,
+local nameOne, iconTexture, pointsSpentOne,description,id = GetTalentTabInfo(1)
+local nameTwo, iconTexture, pointsSpentTwo,description,id = GetTalentTabInfo(2)
 
-	EE = function ()
-		if isCastable(Spells.EE) and EnhaPrio.db.char.useLongCD then
-			addToQueue(Spells.EE)
-		end
-	end,
+local MyEnhaPrioSpec = "Elemental"
+if pointsSpentOne > pointsSpentTwo then
+   --print("Elemental")
+   MyEnhaPrioSpec = "Elemental"
+end
+if pointsSpentTwo > pointsSpentOne then
+   --print("Enhancement")
+   MyEnhaPrioSpec = "Enhancement"
+end
 
-	AS = function ()
-		if isCastable(Spells.AS) and EnhaPrio.db.char.useLongCD and not hasAS then
-			addToQueue(Spells.AS)
-		end
-	end,
-
-	['EB1+'] = function ()
-		if isCastable(Spells.EB) and ranged and mwAmount > 1 then
-			addToQueue(Spells.EB)
-		end
-	end,
-
-	EB = function ()
-		if isCastable(Spells.EB) and ranged then
-			addToQueue(Spells.EB)
-		end
-	end,
-
-
-	AN = function ()
-		if isCastable(Spells.AN) and mwAmount < 2 and EnhaPrio.db.char.useLongCD then
-			addToQueue(Spells.AN)
-		end
-	end,
-
-	LBA = function ()
-		if hasAN and isCastable(Spells.LB) then
-			addToQueue(Spells.LB)
-		end
-	end,
-
-	UE = function ()
-	    if isCastable(Spells.UE) and not talentUF then
-			addToQueue(Spells.UE)
-		end
-	end,
-
-	UEF = function ()
-	    if isCastable(Spells.UE) and talentUF then
-	        addToQueue(Spells.UE)
-		end
-	end,
-
-	LB5 = function ()
-		-- do lb, if 5 buffs
-		if isCastable(Spells.LB) and mwAmount == 5 and ranged then
-			addToQueue(Spells.LB)
-		end
-	end,
-
-
-	["LB3+"] = function ()
-		if isCastable(Spells.LB) and mwAmount >= 3 and mwAmount < 5 and hasUFD and ranged and not hasAS then
-		    addToQueue(Spells.LB)
-		end
-	end,
-
-	["LB1+"] = function ()
-		if isCastable(Spells.LB) and ((mwAmount > 1 and mwAmount < 3) or (mwAmount > 1 and mwAmount < 5 and not hasUFD)) and ranged and castLB and not hasAS then
-		    addToQueue(Spells.LB)
-		end
-	end,
-
-
-	FR = function ()
-		if isCastable(Spells.FR) and EnhaPrio.db.char.useLongCD then
-			addToQueue(Spells.FR)
-		end
-	end,
-
-	EM = function ()
-		if isCastable(Spells.EM) and EnhaPrio.db.char.useLongCD then
-			addToQueue(Spells.EM)
-		end
-	end,
-
- 	LB = function ()
-		-- just lightning bolt (for elemental)
-  		if isCastable(Spells.LB) then
-			addToQueue(Spells.LB)
-		end
-	end,
-
-	HS = function ()
-	    -- do healing surge, if has 5 buffs and health is low
-	    if isCastable(Spells.HS) and mwAmount == 5 and health <= EnhaPrio.db.char.healthLevel and EnhaPrio.db.char.healthLevel > 0 then
-		addToQueue(Spells.HS)
-	    end
-	end,
-
-	FS0 = function ()
-	    if isCastable(Spells.FS) and ranged and hasUF and fsLeft == 0 then
-	        addToQueue(Spells.FS)
-		end
-	end,
-
-	FS = function ()
-		-- if there is under 1.5sec left on flame shock on the target
-		-- if isCastable(Spells.FS) and ranged and fsLeft <= 3 then
-
-		if isCastable(Spells.FS) and ranged and ((mode == "Enhancement" and hasUF) or (mode == "Elemental")) and fsLeft < 3 and fsLeft > 0 then -- changed
-			addToQueue(Spells.FS)
-		end
-	end,
-
-	FSE = function ()
-	    if isCastable(Spells.FS) and ranged and mode == "Elemental" and fsLeft < 3 then -- changed
-			addToQueue(Spells.FS)
-		end
-	end,
-
-	FSX = function ()
-	    -- if there is uf up, no matter the remaining time on fs
-	    if isCastable(Spells.FS) and ranged and mode == "Enhancement" and hasUF and fsLeft >= 3 then
-	        addToQueue(Spells.FS)
-		end
-	end,
-
-	LS = function ()
-		-- lightningshield
-		if isCastable(Spells.LS) and noLS then
-			addToQueue(Spells.LS)
-		end
-	end,
-
- 	ST0 = function ()
-		-- searing totem, with no fire totem up
-		if isCastable(Spells.ST) and melee and not hasTotem then
-			addToQueue(Spells.ST)
-		end
-	end,
-
-	STX = function ()
-		-- searing totem, with some stacks up
-		if isCastable(Spells.ST) and sfAmount > 0 and melee and not hasMT and hasTotem and totemTimeLeft < 30 then
-			addToQueue(Spells.ST)
-		end
-	end,
-
-	ST = function ()
-		-- searing totem, if you don't have the totem down, for elemental
-		if isCastable(Spells.ST) and not hasTotem then
-			addToQueue(Spells.ST)
-		end
-	end,
-
-	FRS = function ()
-		-- Frost shock
-		if isCastable(Spells.FRS) and ranged and (fsLeft > 3 or not hasUF) then
-			addToQueue(Spells.FRS)
-		end
-	end,
-
-	ES7 = function ()
-		-- Frost shock when there is 7-9 stacks on ls
-		if isCastable(Spells.FRS) and ranged and fsLeft > 3 and lsStack > 4 then
-			addToQueue(Spells.FRS)
-		end
-	end,
-
-	SS = function ()
-	    if hasAS then
-	        -- Windstrike
-		    if isCastable(Spells.WS) and ranged then
-    			addToQueue(Spells.WS)
+--print(MyEnhaPrioSpec)
+local Actions
+if MyEnhaPrioSpec == "Elemental" then
+    Actions = {
+    	FE = function ()
+    		-- cast fire elemental totem only when you have bloodlust/heroism on
+    		if isCastable(Spells.FE) and hasBL and EnhaPrio.db.char.useLongCD then
+    			addToQueue(Spells.FE)
     		end
-    	else
-	        -- Stormstrike
-    		if isCastable(Spells.SS) and melee then
-    			addToQueue(Spells.SS)
+    	end,
+
+    	EE = function ()
+    		if isCastable(Spells.EE) and EnhaPrio.db.char.useLongCD then
+    			addToQueue(Spells.EE)
     		end
-		end
-	end,
+    	end,
 
-	LL = function ()
-		-- lava lash (removed sfAmount == 5)
-		if isCastable(Spells.LL) and melee then
-			addToQueue(Spells.LL)
-		end
-	end,
+    	AS = function ()
+    		if isCastable(Spells.AS) and EnhaPrio.db.char.useLongCD and not hasAS then
+    			addToQueue(Spells.AS)
+    		end
+    	end,
 
-	LA = function ()
-		-- lava burst
-		if isCastable(Spells.LA) and ranged and fsLeft > 2 then
-			addToQueue(Spells.LA)
-		end
-	end,
+    	['EB1+'] = function ()
+    		if isCastable(Spells.EB) and ranged and mwAmount > 1 then
+    			addToQueue(Spells.EB)
+    		end
+    	end,
 
-	LAX = function ()
-		-- lava burst for enha use
-		if isCastable(Spells.LA) and mwAmount < 3 and nextCD > 2 then
-			addToQueue(Spells.LA)
-		end
-	end,
+    	EB = function ()
+    		if isCastable(Spells.EB) and ranged then
+    			addToQueue(Spells.EB)
+    		end
+    	end,
 
 
-	-- AOE skills
+    	AN = function ()
+    		if isCastable(Spells.AN) and mwAmount < 2 and EnhaPrio.db.char.useLongCD then
+    			addToQueue(Spells.AN)
+    		end
+    	end,
 
-	AOEMT = function ()
-	    if isCastable(Spells.MT) and totemTimeLeft < 5 then
-	        addToQueue(Spells.MT)
-		end
-	end,
-	AOEUE = function ()
-	    if isCastable(Spells.UE) and ranged then
-	        addToQueue(Spells.UE)
-		end
-	end,
-	AOEFS = function ()
-	    if isCastable(Spells.FS) and fsLeft < 10 and hasUF then
-	        addToQueue(Spells.FS)
-		end
-	end,
-	AOELL = function ()
-	    if isCastable(Spells.LL) and fsLeft > 20 then
-	        addToQueue(Spells.LL)
-		end
-	end,
-	AOEFN = function ()
-	    if isCastable(Spells.FN) then
-	        addToQueue(Spells.FN)
-		end
-	end,
-	AOECL = function ()
-	    if isCastable(Spells.CL) and mwAmount == 5 then
-	        addToQueue(Spells.CL)
-		end
-	end,
-	AOESS = function ()
-	    if isCastable(Spells.SS) then
-	        addToQueue(Spells.SS)
-		end
-	end
+    	LBA = function ()
+    		if hasAN and isCastable(Spells.LB) then
+    			addToQueue(Spells.LB)
+    		end
+    	end,
 
-}
+    	UE = function ()
+    	    if isCastable(Spells.UE) and not talentUF then
+    			addToQueue(Spells.UE)
+    		end
+    	end,
+
+    	UEF = function ()
+    	    if isCastable(Spells.UE) and talentUF then
+    	        addToQueue(Spells.UE)
+    		end
+    	end,
+
+    	LB5 = function ()
+    		-- do lb, if 5 buffs
+    		if isCastable(Spells.LB) and mwAmount == 5 and ranged then
+    			addToQueue(Spells.LB)
+    		end
+    	end,
+
+
+    	["LB3+"] = function ()
+    		if isCastable(Spells.LB) and mwAmount >= 3 and mwAmount < 5 and hasUFD and ranged and not hasAS then
+    		    addToQueue(Spells.LB)
+    		end
+    	end,
+
+    	["LB1+"] = function ()
+    		if isCastable(Spells.LB) and ((mwAmount > 1 and mwAmount < 3) or (mwAmount > 1 and mwAmount < 5 and not hasUFD)) and ranged and castLB and not hasAS then
+    		    addToQueue(Spells.LB)
+    		end
+    	end,
+
+
+    	FR = function ()
+    		if isCastable(Spells.FR) and EnhaPrio.db.char.useLongCD then
+    			addToQueue(Spells.FR)
+    		end
+    	end,
+
+    	EM = function ()
+    		if isCastable(Spells.EM) and EnhaPrio.db.char.useLongCD then
+    			addToQueue(Spells.EM)
+    		end
+    	end,
+
+     	LB = function ()
+    		-- just lightning bolt (for elemental)
+      		if isCastable(Spells.LB) then
+    			addToQueue(Spells.LB)
+    		end
+    	end,
+
+    	HS = function ()
+    	    -- do healing surge, if has 5 buffs and health is low
+    	    if isCastable(Spells.HS) and mwAmount == 5 and health <= EnhaPrio.db.char.healthLevel and EnhaPrio.db.char.healthLevel > 0 then
+    		addToQueue(Spells.HS)
+    	    end
+    	end,
+
+    	FS0 = function ()
+    	    if isCastable(Spells.FS) and ranged and hasUF and fsLeft == 0 then
+    	        addToQueue(Spells.FS)
+    		end
+    	end,
+
+    	FS = function ()
+    		-- if there is under 1.5sec left on flame shock on the target
+    		-- if isCastable(Spells.FS) and ranged and fsLeft <= 3 then
+
+    		if isCastable(Spells.FS) and ranged and ((mode == "Enhancement" and hasUF) or (mode == "Elemental")) and fsLeft < 3 and fsLeft > 0 then -- changed
+    			addToQueue(Spells.FS)
+    		end
+    	end,
+
+    	FSE = function ()
+    	    if isCastable(Spells.FS) and ranged and mode == "Elemental" and fsLeft < 3 then -- changed
+    			addToQueue(Spells.FS)
+    		end
+    	end,
+
+    	FSX = function ()
+    	    -- if there is uf up, no matter the remaining time on fs
+    	    if isCastable(Spells.FS) and ranged and mode == "Enhancement" and hasUF and fsLeft >= 3 then
+    	        addToQueue(Spells.FS)
+    		end
+    	end,
+
+    	LS = function ()
+    		-- lightningshield
+    		if isCastable(Spells.LS) and noLS then
+    			addToQueue(Spells.LS)
+    		end
+    	end,
+
+     	ST0 = function ()
+    		-- searing totem, with no fire totem up
+    		if isCastable(Spells.ST) and melee and not hasTotem then
+    			addToQueue(Spells.ST)
+    		end
+    	end,
+
+    	STX = function ()
+    		-- searing totem, with some stacks up
+    		if isCastable(Spells.ST) and sfAmount > 0 and melee and not hasMT and hasTotem and totemTimeLeft < 30 then
+    			addToQueue(Spells.ST)
+    		end
+    	end,
+
+    	ST = function ()
+    		-- searing totem, if you don't have the totem down, for elemental
+    		if isCastable(Spells.ST) and not hasTotem then
+    			addToQueue(Spells.ST)
+    		end
+    	end,
+
+    	FRS = function ()
+    		-- Frost shock
+    		if isCastable(Spells.FRS) and ranged and (fsLeft > 3 or not hasUF) then
+    			addToQueue(Spells.FRS)
+    		end
+    	end,
+
+    	ES7 = function ()
+    		-- Frost shock when there is 7-9 stacks on ls
+    		if isCastable(Spells.FRS) and ranged and fsLeft > 3 and lsStack > 4 then
+    			addToQueue(Spells.FRS)
+    		end
+    	end,
+
+    	SS = function ()
+    	    if hasAS then
+    	        -- Windstrike
+    		    if isCastable(Spells.WS) and ranged then
+        			addToQueue(Spells.WS)
+        		end
+        	else
+    	        -- Stormstrike
+        		if isCastable(Spells.SS) and melee then
+        			addToQueue(Spells.SS)
+        		end
+    		end
+    	end,
+
+    	LL = function ()
+    		-- lava lash (removed sfAmount == 5)
+    		if isCastable(Spells.LL) and melee then
+    			addToQueue(Spells.LL)
+    		end
+    	end,
+
+    	LA = function ()
+    		-- lava burst
+    		if isCastable(Spells.LA) and ranged and fsLeft > 2 then
+    			addToQueue(Spells.LA)
+    		end
+    	end,
+
+    	LAX = function ()
+    		-- lava burst for enha use
+    		if isCastable(Spells.LA) and mwAmount < 3 and nextCD > 2 then
+    			addToQueue(Spells.LA)
+    		end
+    	end,
+
+
+    	-- AOE skills
+
+    	AOEMT = function ()
+    	    if isCastable(Spells.MT) and totemTimeLeft < 5 then
+    	        addToQueue(Spells.MT)
+    		end
+    	end,
+    	AOEUE = function ()
+    	    if isCastable(Spells.UE) and ranged then
+    	        addToQueue(Spells.UE)
+    		end
+    	end,
+    	AOEFS = function ()
+    	    if isCastable(Spells.FS) and fsLeft < 10 and hasUF then
+    	        addToQueue(Spells.FS)
+    		end
+    	end,
+    	AOELL = function ()
+    	    if isCastable(Spells.LL) and fsLeft > 20 then
+    	        addToQueue(Spells.LL)
+    		end
+    	end,
+    	AOEFN = function ()
+    	    if isCastable(Spells.FN) then
+    	        addToQueue(Spells.FN)
+    		end
+    	end,
+    	AOECL = function ()
+    	    if isCastable(Spells.CL) and mwAmount == 5 then
+    	        addToQueue(Spells.CL)
+    		end
+    	end,
+    	AOESS = function ()
+    	    if isCastable(Spells.SS) then
+    	        addToQueue(Spells.SS)
+    		end
+    	end
+
+    }
+end
+
+if MyEnhaPrioSpec == "Enhancement" then
+Actions = {
+		WF = function ()
+			if not hasMH then
+				addToQueue(Spells.WF);
+			end
+		end,
+		FT = function ()
+			if not hasOH then
+				addToQueue(Spells.FT);
+			end
+		end,
+		SR = function ()
+			-- do shamanistic rage
+			if isCastable(Spells.SR) and lowMana and melee then
+				addToQueue(Spells.SR);
+			end
+		end,
+		LB = function ()
+			-- do lb, if 5 buffs
+			if hasMS and ranged then
+				addToQueue(Spells.LB);
+			end
+		end,
+		FS = function ()
+			-- if there is under 1.5sec left on flame shock on the target
+			if isCastable(Spells.FS) and ranged and fsLeft <= 3 then
+				addToQueue(Spells.FS);
+			end
+		end,
+		SSb = function ()
+			-- if the target doesn't have your ss buff on, do it
+			if noSS and isCastable(Spells.SS) and melee then
+				addToQueue(Spells.SS);
+			end
+		end,
+		LS = function ()
+			-- lightningshield
+			if noLS then
+				addToQueue(Spells.LS);
+			end
+		end,
+		MT = function ()
+			-- magma totem
+			if not hasMT and melee and EnhaPrio.db.char.enableAOE then
+				addToQueue(Spells.MT);
+			end
+		end,
+		ES = function ()
+			-- earth shock
+			if isCastable(Spells.ES) and ranged and fsLeft > 3 then
+				addToQueue(Spells.ES);
+			end
+		end,
+		SS = function () 
+			-- Stormstrike
+			if not noSS and isCastable(Spells.SS) and melee then
+				addToQueue(Spells.SS);
+			end
+		end,
+		LL = function ()
+			-- lava lash
+			if isCastable(Spells.LL) and melee then
+				addToQueue(Spells.LL);
+			end
+		end,
+		FN = function ()
+			-- fire nova
+			if isCastable(Spells.FN) and hasMT and EnhaPrio.db.char.enableAOE then
+				addToQueue(Spells.FN);
+			end
+		end,
+	}
+end
 
 -- can you cast that spell
 function isCastable(spellName)
@@ -1243,17 +1355,30 @@ function EnhaPrio:ResolveSpec()
 		return false;
 	end
 
-    local currentSpec = GetSpecialization and GetSpecialization() or GetActiveTalentGroup and GetActiveTalentGroup()
+    --local currentSpec = GetSpecialization and GetSpecialization() or GetActiveTalentGroup and GetActiveTalentGroup()
 	-- what spec are we using
-	if currentSpec == 2 and self.db.char.enhancement then
-		mode = "Enhancement"
-	elseif currentSpec == 1 and self.db.char.elemental then
-	 	mode = "Elemental"
-	 	--mode = nil
-	else
-	    mode = nil
-	end
-	print(mode)
+	local nameOne, iconTexture, pointsSpentOne,description,id = GetTalentTabInfo(1)
+    local nameTwo, iconTexture, pointsSpentTwo,description,id = GetTalentTabInfo(2)
+
+	mode = "Elemental"
+    if pointsSpentOne > pointsSpentTwo then
+       --print("Elemental")
+	   mode = "Elemental"
+    end
+    if pointsSpentTwo > pointsSpentOne then
+       --print("Enhancement")
+	   mode = "Enhancement"
+    end
+	--if currentSpec == 2 then
+	--	mode = "Enhancement"
+	--elseif currentSpec == 1 then
+	-- 	mode = "Elemental"
+	-- 	--mode = nil
+	--else
+	--    mode = nil
+	--end
+	--print("currentSpec ", currentSpec)
+	--print("mode ", mode)
 
 	-- TODO
 	--local _, _, _, _, currentRank = GetTalentInfoByID(16)
@@ -1266,6 +1391,7 @@ function EnhaPrio:ResolveSpec()
 	    self:Stop()
 	    mainFrame:Hide()
 	end
+	return mode
 end
 
 -- :OpenOptions(): Opens the options window.
@@ -1322,9 +1448,9 @@ function EnhaPrio:SPELL_UPDATE_COOLDOWN(...)
 	 	local left = start + duration - GetTime()
 	 	]]
 
-	 	if self.db.char.displayGCD and GCD == duration and mode == "Enhancement" then
-	        CooldownFrame_SetTimer(spellQueueFrames[1].cooldown, GCDstart, GCD, 1)
-	 	end
+	 	--if self.db.char.displayGCD and GCD == duration and mode == "Enhancement" then
+	    --    CooldownFrame_SetTimer(spellQueueFrames[1].cooldown, GCDstart, GCD, 1)
+	 	--end
 	end
 end
 
