@@ -40,4 +40,4 @@ jobs:
       - name: Package Wrath Classic
         uses: BigWigsMods/packager@master
         with:
-          args: -g wrath -m .pkgmeta-wrath
+          args: -g wrath
