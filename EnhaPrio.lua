@@ -779,7 +779,7 @@ function EnhaPrio:refreshQueue()
 	noSS = true
 	fsLeft = 0
 	for i=1,40 do
-		local name, _, _, dcount, _, _, expirationTime, caster = UnitDebuff("target", i)
+		local name, icon, dcount, debuffType, duration, expirationTime, caster = UnitDebuff("target", i)
 		if not name then
 			break -- end of debuffs
 		end
