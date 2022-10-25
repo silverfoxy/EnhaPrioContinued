@@ -71,6 +71,7 @@ local Priority = {
 		----"STX" -- searing totem, even with stacks up
 
 		--Wrath
+		"FE", -- Fire Elemental, if Bloodlust up
 		"WF", -- weapon buffs (windfury)
 		"FT", -- weapon buffs (flametongue)
 
@@ -90,7 +91,7 @@ local Priority = {
 	EnhancementAOE = { -- priorities used in enhancement aoe
 	    --"HS", -- healing surge for when the shit hits the fan
 		"LS", -- Lightning Shield if it isn't active on you
-
+		"FE", -- Fire Elemental, if Bloodlust up
 		"WF", -- weapon buffs (windfury)
 		"FT", -- weapon buffs (flametongue)
 
@@ -544,6 +545,12 @@ end
 
 if MyEnhaPrioSpec == "Enhancement" then
 Actions = {
+	    FE = function ()
+	    	-- cast fire elemental totem only when you have bloodlust/heroism on
+	    	if isCastable(Spells.FE) and hasBL and EnhaPrio.db.char.useLongCD then
+	    		addToQueue(Spells.FE)
+	    	end
+	    end,
 		WF = function ()
 			if not hasMH then
 				addToQueue(Spells.WF);
