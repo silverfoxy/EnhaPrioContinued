@@ -755,7 +755,7 @@ function EnhaPrio:refreshQueue()
 			break -- end of buffs
 		end
 		if name == Spells.MS then
-		    mwAmount = count
+		    mwAmount = count and count or 0
 			if count == 5 then
 				hasMS = true
 			end
@@ -871,35 +871,35 @@ function EnhaPrio:reCalculate()
 	    -- show maelstrom wep
 		-- TODO
 		--Attempt to compair number with string
-	    --if mode == "Enhancement" and self.db.char.displayMW and mwAmount > 0 and ranged then
-	    --    mainFrame.text:SetText(mwAmount)
-	    --    if mwAmount == 1 then
-	    --    	mainFrame.text:SetTextColor(1, 1, 1, 1)
-		--	elseif mwAmount == 2 then
-		--	    mainFrame.text:SetTextColor(1, 1, 0, 1)
-		--	elseif mwAmount == 3 then
-		--	    mainFrame.text:SetTextColor(1, 1, 0, 1)
-		--	elseif mwAmount == 4 then
-		--	    mainFrame.text:SetTextColor(1, .5, 0, 1)
-		--	elseif mwAmount == 5 then
-		--	    mainFrame.text:SetTextColor(1, 0, 0, 1)
-		--	end
-		--elseif mode == "Elemental" and self.db.char.displayMW and lsStack > 0 and ranged then
-		--    mainFrame.text:SetText(lsStack)
-	    --    if lsStack > 0 and lsStack < 6 then
-	    --    	mainFrame.text:SetTextColor(1, 1, 1, 1)
-		--	elseif lsStack == 6 then
-		--	    mainFrame.text:SetTextColor(1, 1, 0, 1)
-		--	elseif lsStack == 7 then
-		--	    mainFrame.text:SetTextColor(1, 1, 0, 1)
-		--	elseif lsStack == 8 then
-		--	    mainFrame.text:SetTextColor(1, .5, 0, 1)
-		--	elseif lsStack == 9 then
-		--	    mainFrame.text:SetTextColor(1, 0, 0, 1)
-		--	end
-		--else
-		--    mainFrame.text:SetText("")
-	    --end
+	    if mode == "Enhancement" and self.db.char.displayMW and mwAmount > 0 and ranged then
+	        mainFrame.text:SetText(mwAmount)
+	        if mwAmount == 1 then
+	        	mainFrame.text:SetTextColor(1, 1, 1, 1)
+			elseif mwAmount == 2 then
+			    mainFrame.text:SetTextColor(1, 1, 0, 1)
+			elseif mwAmount == 3 then
+			    mainFrame.text:SetTextColor(1, 1, 0, 1)
+			elseif mwAmount == 4 then
+			    mainFrame.text:SetTextColor(1, .5, 0, 1)
+			elseif mwAmount == 5 then
+			    mainFrame.text:SetTextColor(1, 0, 0, 1)
+			end
+		elseif mode == "Elemental" and self.db.char.displayMW and lsStack > 0 and ranged then
+		    mainFrame.text:SetText(lsStack)
+	        if lsStack > 0 and lsStack < 6 then
+	        	mainFrame.text:SetTextColor(1, 1, 1, 1)
+			elseif lsStack == 6 then
+			    mainFrame.text:SetTextColor(1, 1, 0, 1)
+			elseif lsStack == 7 then
+			    mainFrame.text:SetTextColor(1, 1, 0, 1)
+			elseif lsStack == 8 then
+			    mainFrame.text:SetTextColor(1, .5, 0, 1)
+			elseif lsStack == 9 then
+			    mainFrame.text:SetTextColor(1, 0, 0, 1)
+			end
+		else
+		    mainFrame.text:SetText("")
+	    end
 
 	    -- flame shock timer
 	    if fsLeft > 0 and self.db.char.fsTracker then
