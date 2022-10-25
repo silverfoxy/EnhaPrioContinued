@@ -916,8 +916,8 @@ function EnhaPrio:reCalculate()
 		end
 
 	    -- disable this for now
-	    mainFrame.rage.texture:SetTexture(nil)
-		mainFrame.rage:Hide()
+	    --mainFrame.rage.texture:SetTexture(nil)
+		--mainFrame.rage:Hide()
 
 	    -- wolf/em and ele
 	    if self.db.char.enableLongCD then
@@ -928,6 +928,14 @@ function EnhaPrio:reCalculate()
 				else
 					mainFrame.wolf.texture:SetTexture(nil)
 					mainFrame.wolf:Hide()
+				end
+
+				if isNotOnCD(Spells.SR) and ranged then
+		    		mainFrame.rage.texture:SetTexture(GetSpellTexture(Spells.SR))
+					mainFrame.rage:Show()
+				else
+					mainFrame.rage.texture:SetTexture(nil)
+					mainFrame.rage:Hide()
 				end
 			elseif mode == "Elemental" then
 			    if isNotOnCD(Spells.EM) and ranged then
@@ -947,13 +955,13 @@ function EnhaPrio:reCalculate()
 				mainFrame.elemental.texture:SetTexture(nil)
 				mainFrame.elemental:Hide()
 			end
-			if isNotOnCD(Spells.AS) and ranged and not hasAS then
-				mainFrame.rage.texture:SetTexture(GetSpellTexture(Spells.AS))
-				mainFrame.rage:Show()
-			else
-				mainFrame.rage.texture:SetTexture(nil)
-				mainFrame.rage:Hide()
-			end
+			--if isNotOnCD(Spells.AS) and ranged and not hasAS then
+			--	mainFrame.rage.texture:SetTexture(GetSpellTexture(Spells.AS))
+			--	mainFrame.rage:Show()
+			--else
+			--	mainFrame.rage.texture:SetTexture(nil)
+			--	mainFrame.rage:Hide()
+			--end
 	    end
 
 	    -- make priority calculation for the queue
@@ -1327,7 +1335,7 @@ function EnhaPrio:OnInitialize()
 	mainFrame.elemental:ClearAllPoints()
 
 	mainFrame.rage = CreateFrame("Button", "EnhaPrioShamanisticRageButton", mainFrame)
-	mainFrame.rage.id = 114049
+	mainFrame.rage.id = 30823
 	mainFrame.rage.texture = mainFrame.rage:CreateTexture(nil,"BACKGROUND")
 	mainFrame.rage.texture:SetAllPoints(mainFrame.rage)
 	mainFrame.rage:SetWidth(self.db.char.size / 3)
