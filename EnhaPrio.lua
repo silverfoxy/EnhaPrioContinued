@@ -79,13 +79,14 @@ local Priority = {
 
 		"LB", -- Lightning Bolt if there are 5 Maelstrom stacks
 		"FS", -- Flame Shock if there's less than 1.5 sec left on the dot
-		"SSb", -- Stormstrike if there's no ss buff on the target
-		"LS", -- Lightning Shield if it isn't active on you
 		"MT", -- Magma Totem if you don't have one down
+		"SSb", -- Stormstrike if there's no ss buff on the target
+		"LB3+", -- Lightning Bolt if there are 4 Maelstrom stacks
+		"FN",  -- Fire Nova	
 		"ES", -- Earth Shock
 		"SS", -- Stormstrike even if there's a ss buff on the target
 		"LL", -- Lava Lash
-		"FN"  -- Fire Nova
+		"LS", -- Lightning Shield if it isn't active on you	
 
 	},
 	EnhancementAOE = { -- priorities used in enhancement aoe
@@ -97,15 +98,18 @@ local Priority = {
 
 		"SR", -- Shamanistic Rage when you have less than 20% mana
 
+		"MT", -- Magma Totem if you don't have one down
+		"FN",  -- Fire Nova
+		"CL", -- Chain Lightning if its ready
 		"LB", -- Lightning Bolt if there are 5 Maelstrom stacks
+		"LB4", -- Lightning Bolt if there are 5 Maelstrom stacks
 		"FS", -- Flame Shock if there's less than 1.5 sec left on the dot
 		"SSb", -- Stormstrike if there's no ss buff on the target
-		"LS", -- Lightning Shield if it isn't active on you
-		"MT", -- Magma Totem if you don't have one down
 		"ES", -- Earth Shock
 		"SS", -- Stormstrike even if there's a ss buff on the target
+		"LS", -- Lightning Shield if it isn't active on you
 		"LL", -- Lava Lash
-		"FN",  -- Fire Nova
+		
 
 		-- damage spells
 
@@ -249,8 +253,8 @@ local Spells = {
 	FR = GetSpellInfo(51533), -- feral spirit
 	FE = GetSpellInfo(2894), -- fire elemental totem
 	FS = GetSpellInfo(8050), -- flame shock
-	--MT = GetSpellInfo(8190), -- magma totem
-	MT = "Magma Totem VII", -- magma totem
+	MT = GetSpellInfo(8190), -- magma totem
+	-- MT = "Magma Totem VII", -- magma totem
 	FN = GetSpellInfo(61654), -- fire nova
 	ST = GetSpellInfo(3599), -- searing totem
 	LA = GetSpellInfo(51505), -- Lava Burst
@@ -593,7 +597,7 @@ Actions = {
 		end,
 		MT = function ()
 			-- magma totem
-			if not hasMT and melee and EnhaPrio.db.char.enableAOE then
+			if not hasMT and melee then -- and EnhaPrio.db.char.enableAOE then
 				addToQueue(Spells.MT);
 			end
 		end,
@@ -617,7 +621,7 @@ Actions = {
 		end,
 		FN = function ()
 			-- fire nova
-			if isCastable(Spells.FN) and hasMT and EnhaPrio.db.char.enableAOE then
+			if isCastable(Spells.FN) and hasMT then -- and EnhaPrio.db.char.enableAOE then
 				addToQueue(Spells.FN);
 			end
 		end,
@@ -845,7 +849,9 @@ function EnhaPrio:refreshQueue()
 
   	-- now loop through the actions
 	for i, v in ipairs(Priority[pmode]) do
-		Actions[v]()
+		if Actions[v] ~= nil then
+			Actions[v]()
+		end
 	end
 end
 
