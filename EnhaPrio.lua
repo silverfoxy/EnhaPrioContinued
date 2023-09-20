@@ -100,10 +100,9 @@ local Priority = {
 		"AOECL", -- Chain Lightning if its ready
 		"LB4+", -- Lightning Bolt if there are 4+ Maelstrom stacks
 		"FS", -- Flame Shock if there's less than 1.5 sec left on the dot
-		"AOEFN",  -- Fire Nova
 		"SSb", -- Stormstrike if there's no ss buff on the target
 		"ES", -- Earth Shock
-		-- "LB3",
+		"AOEFN",  -- Fire Nova
 		"SS", -- Stormstrike even if there's a ss buff on the target
 		"LL", -- Lava Lash
 		"LS", -- Lightning Shield if it isn't active on you
