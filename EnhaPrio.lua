@@ -91,36 +91,23 @@ local Priority = {
 	},
 	EnhancementAOE = { -- priorities used in enhancement aoe
 	    --"HS", -- healing surge for when the shit hits the fan
-		"LS", -- Lightning Shield if it isn't active on you
 		"FE", -- Fire Elemental, if Bloodlust up
-		"WF", -- weapon buffs (windfury)
 		"FT", -- weapon buffs (flametongue)
 
 		"SR", -- Shamanistic Rage when you have less than 20% mana
 
-		"MT", -- Magma Totem if you don't have one down
-		"FN",  -- Fire Nova
-		"CL", -- Chain Lightning if its ready
-		"LB", -- Lightning Bolt if there are 5 Maelstrom stacks
-		"LB4", -- Lightning Bolt if there are 5 Maelstrom stacks
+		"AOEMT", -- Magma Totem if you don't have one down
+		"AOECL", -- Chain Lightning if its ready
+		"LB4+", -- Lightning Bolt if there are 4+ Maelstrom stacks
 		"FS", -- Flame Shock if there's less than 1.5 sec left on the dot
+		"AOEFN",  -- Fire Nova
 		"SSb", -- Stormstrike if there's no ss buff on the target
 		"ES", -- Earth Shock
+		-- "LB3",
 		"SS", -- Stormstrike even if there's a ss buff on the target
-		"LS", -- Lightning Shield if it isn't active on you
 		"LL", -- Lava Lash
-		
-
-		-- damage spells
-
-        "AOEMT", -- fire nova totem, when under 5 sec left
-        "AOEUE", -- unleash elements, whenever out of cd
-        "AOEFS", -- flame shock, when under 10 sec left and Uf up
-        "AOELL", -- lava lash, when more than 20 sec left on fs
-        "AOEFN", -- fire nova, whenever out of cd
-        "AOECL", -- chain lightning, when 5 stacks of mw
-        "AOESS" -- stormstrike, whenever
-
+		"LS", -- Lightning Shield if it isn't active on you
+		"LB3+", -- Lightning Bolt if there are 4+ Maelstrom stacks
 	},
 	-- elemental is again enabled
 	Elemental = { -- priorities used in elemental spec,
@@ -230,6 +217,7 @@ local defaults = {
 		elemental = true,
 		useLongCD = true,
 		useAOE = true,
+		spellhance = true,
 		fsTracker = true
 	}
 }
@@ -529,12 +517,12 @@ if MyEnhaPrioSpec == "Elemental" then
     		end
     	end,
     	AOEFN = function ()
-    	    if isCastable(Spells.FN) then
+    	    if isCastable(Spells.FN) and isNotOnCD(Spells.FN) then
     	        addToQueue(Spells.FN)
     		end
     	end,
     	AOECL = function ()
-    	    if isCastable(Spells.CL) and mwAmount == 5 then
+    	    if isCastable(Spells.CL) and mwAmount >= 4 then
     	        addToQueue(Spells.CL)
     		end
     	end,
@@ -577,6 +565,22 @@ Actions = {
 				addToQueue(Spells.LB);
 			end
 		end,
+		LB5 = function ()
+    		-- do lb, if 5 buffs
+    		if isCastable(Spells.LB) and mwAmount == 5 and ranged then
+    			addToQueue(Spells.LB)
+    		end
+    	end,
+		["LB4+"] = function ()
+    		if isCastable(Spells.LB) and mwAmount >= 4 then
+    		    addToQueue(Spells.LB)
+    		end
+    	end,
+    	["LB3+"] = function ()
+    		if isCastable(Spells.LB) and mwAmount >= 3 then
+    		    addToQueue(Spells.LB)
+    		end
+    	end,
 		FS = function ()
 			-- if there is under 1.5sec left on flame shock on the target
 			if isCastable(Spells.FS) and ranged and fsLeft <= 3 then
@@ -597,7 +601,9 @@ Actions = {
 		end,
 		MT = function ()
 			-- magma totem
-			if not hasMT and melee then -- and EnhaPrio.db.char.enableAOE then
+			if not hasMT and melee and EnhaPrio.db.char.enableAOE then
+				addToQueue(Spells.MT);
+			elseif hasMT and melee and totemTimeLeft < 5 and EnhaPrio.db.char.enableAOE then
 				addToQueue(Spells.MT);
 			end
 		end,
@@ -621,7 +627,7 @@ Actions = {
 		end,
 		FN = function ()
 			-- fire nova
-			if isCastable(Spells.FN) and hasMT then -- and EnhaPrio.db.char.enableAOE then
+			if isCastable(Spells.FN) and hasMT and EnhaPrio.db.char.enableAOE then
 				addToQueue(Spells.FN);
 			end
 		end,
@@ -652,7 +658,7 @@ Actions = {
     		end
     	end,
     	AOECL = function ()
-    	    if isCastable(Spells.CL) and mwAmount == 5 then
+    	    if isCastable(Spells.CL) and mwAmount >= 4 then
     	        addToQueue(Spells.CL)
     		end
     	end,
@@ -697,7 +703,6 @@ function addToQueue(spell)
 	    --if spell ~= Spells.LB or #queue == 0 then
 	        queue[#queue+1] = spell
 		--end
-
 	end
 end
 
@@ -739,7 +744,6 @@ end
 -- refreshes the queue according to the priorities
 -- check stuff and then run the queue
 function EnhaPrio:refreshQueue()
-
 	-- players health percentage
 	health = UnitHealth("player") / (UnitHealthMax("player") / 100)
 
@@ -819,6 +823,7 @@ function EnhaPrio:refreshQueue()
 	end
 	totemTimeLeft = 0
 	totemTimeLeft = GetTotemTimeLeft(1)
+	if DLAPI and hasTotem and totemName ~= "" then DLAPI.DebugLog("EnhaPrio", "Totem time left is %s for %s", tostring(totemTimeLeft), tostring(totemName)) end
 
 	-- weapon buffs
 	hasMH, _, _, _, hasOH = GetWeaponEnchantInfo()
@@ -843,10 +848,11 @@ function EnhaPrio:refreshQueue()
 
 	local pmode = mode
 	-- AOE stuff
-	if pmode == "Enhancement" and aoe and EnhaPrio.db.char.useAOE then
+	-- if DLAPI then DLAPI.DebugLog("EnhaPrio", "AOE mode is %s", tostring(EnhaPrio.db.char.useAOE)) end
+	if pmode == "Enhancement" and EnhaPrio.db.char.useAOE then
 	    pmode = "EnhancementAOE"
 	end
-
+	-- if DLAPI then DLAPI.DebugLog("EnhaPrio", "pmode is %s", tostring(pmode)) end
   	-- now loop through the actions
 	for i, v in ipairs(Priority[pmode]) do
 		if Actions[v] ~= nil then
@@ -857,7 +863,6 @@ end
 
 function EnhaPrio:reCalculate()
 	-- check if the target is hostile and you are not mounted or on a vehicle or dead
-
 	-- empty the queue
 	for k,v in pairs(queue) do queue[k]=nil end
 
