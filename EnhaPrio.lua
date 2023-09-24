@@ -98,15 +98,15 @@ local Priority = {
 
 		"AOEMT", -- Magma Totem if you don't have one down
 		"AOECL", -- Chain Lightning if its ready
+		"SSb", -- Stormstrike if there's no ss buff on the target
 		"LB4+", -- Lightning Bolt if there are 4+ Maelstrom stacks
 		"FS", -- Flame Shock if there's less than 1.5 sec left on the dot
-		"SSb", -- Stormstrike if there's no ss buff on the target
 		"ES", -- Earth Shock
 		"AOEFN",  -- Fire Nova
-		"SS", -- Stormstrike even if there's a ss buff on the target
 		"LL", -- Lava Lash
+		"SS", -- Stormstrike even if there's a ss buff on the target
 		"LS", -- Lightning Shield if it isn't active on you
-		"LB3+", -- Lightning Bolt if there are 4+ Maelstrom stacks
+		-- "LB3+", -- Lightning Bolt if there are 4+ Maelstrom stacks
 	},
 	-- elemental is again enabled
 	Elemental = { -- priorities used in elemental spec,
@@ -170,6 +170,8 @@ local hasUFD = false
 local hasBL = false
 local hasAN = false
 local hasAS = false
+local hasEGZ = false
+local egzLeft = 0
 local talentUF = false
 local castLB = false
 local lowMana = false
@@ -234,7 +236,7 @@ local Spells = {
 	WF = GetSpellInfo(58804),
 	FT = GetSpellInfo(58790),
 	--LB = GetSpellInfo(403), -- lightning bolt
-	LB = GetSpellInfo(25449),
+	LB = GetSpellInfo(49238),
 	LS = GetSpellInfo(324), -- lightning shield
 	SR = GetSpellInfo(30823),
 	FR = GetSpellInfo(51533), -- feral spirit
@@ -260,7 +262,8 @@ local Spells = {
 	AN = GetSpellInfo(16188), -- Ancestral Swiftness
 	UFD = GetSpellInfo(117012), --Unleash Fury (debuff)
 	--HS = GetSpellInfo(8004), -- Healing Surge
-	CL = GetSpellInfo(421) -- Chain Lightning
+	CL = GetSpellInfo(421), -- Chain Lightning
+	EGZ = GetSpellInfo(67385) -- Energized (200 haste)
 }
 
 -- local variables for generically named functions to avoid bad globals
@@ -573,11 +576,13 @@ Actions = {
 		["LB4+"] = function ()
     		if isCastable(Spells.LB) and mwAmount >= 4 then
     		    addToQueue(Spells.LB)
+				if DLAPI then DLAPI.DebugLog("EnhaPrio", "Adding LB4+ to queue") end
     		end
     	end,
     	["LB3+"] = function ()
     		if isCastable(Spells.LB) and mwAmount >= 3 then
     		    addToQueue(Spells.LB)
+				if DLAPI then DLAPI.DebugLog("EnhaPrio", "Adding LB3+ to queue") end
     		end
     	end,
 		FS = function ()
@@ -657,7 +662,7 @@ Actions = {
     		end
     	end,
     	AOECL = function ()
-    	    if isCastable(Spells.CL) and mwAmount >= 4 then
+    	    if isCastable(Spells.CL) and mwAmount >= 4 and hasEGZ and egzLeft > 4 then
     	        addToQueue(Spells.CL)
     		end
     	end,
@@ -756,8 +761,10 @@ function EnhaPrio:refreshQueue()
 	hasBL = false
 	hasAN = false
 	hasAS = false
+	hasEGZ = false
+	egzLeft = 0
 	for i=1,40 do
-		local name, _, count = UnitBuff("player", i)
+		local name, _, count, _, _, expirationTime = UnitBuff("player", i)
 		if not name then
 			break -- end of buffs
 		end
@@ -779,8 +786,15 @@ function EnhaPrio:refreshQueue()
 			hasAN = true
 		elseif name == Spells.AS then
 		    hasAS = true
+		elseif name == Spells.EGZ then
+			hasEGZ = true
+			egzLeft = expirationTime - GetTime()
+			-- if DLAPI then DLAPI.DebugLog("EnhaPrio", "Energized for %s seconds", tostring(egzLeft)) end
 		end
 	end
+	--- if not hasEGZ then
+	--- 	if DLAPI then DLAPI.DebugLog("EnhaPrio", "Not Energized") end
+	--- end
 
 	-- targets debuffs (fire shock)
 	noSS = true
@@ -822,7 +836,7 @@ function EnhaPrio:refreshQueue()
 	end
 	totemTimeLeft = 0
 	totemTimeLeft = GetTotemTimeLeft(1)
-	if DLAPI and hasTotem and totemName ~= "" then DLAPI.DebugLog("EnhaPrio", "Totem time left is %s for %s", tostring(totemTimeLeft), tostring(totemName)) end
+	-- if DLAPI and hasTotem and totemName ~= "" then DLAPI.DebugLog("EnhaPrio", "Totem time left is %s for %s", tostring(totemTimeLeft), tostring(totemName)) end
 
 	-- weapon buffs
 	hasMH, _, _, _, hasOH = GetWeaponEnchantInfo()
