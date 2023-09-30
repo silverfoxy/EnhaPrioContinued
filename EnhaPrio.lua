@@ -241,7 +241,7 @@ local Spells = {
 	SR = GetSpellInfo(30823),
 	FR = GetSpellInfo(51533), -- feral spirit
 	FE = GetSpellInfo(2894), -- fire elemental totem
-	FS = GetSpellInfo(8050), -- flame shock
+	FS = GetSpellInfo(49233), -- flame shock
 	MT = GetSpellInfo(8190), -- magma totem
 	-- MT = "Magma Totem VII", -- magma totem
 	FN = GetSpellInfo(61654), -- fire nova
@@ -272,15 +272,20 @@ local addToQueue, check, isCastable, isNotOnCD, round, swPrint, table_compare, t
 -- here are the different actions (adding stuff to queue according to the situation)
 local nameOne, iconTexture, pointsSpentOne,description,id = GetTalentTabInfo(1)
 local nameTwo, iconTexture, pointsSpentTwo,description,id = GetTalentTabInfo(2)
+local nameThree, iconTexture, pointsSpentThree,description,id = GetTalentTabInfo(3)
 
-local MyEnhaPrioSpec = "Elemental"
+local MyEnhaPrioSpec = "Enhancement"
 if pointsSpentOne > pointsSpentTwo then
    --print("Elemental")
    MyEnhaPrioSpec = "Elemental"
 end
-if pointsSpentTwo > pointsSpentOne then
+if pointsSpentTwo >= pointsSpentOne then
    --print("Enhancement")
    MyEnhaPrioSpec = "Enhancement"
+end
+if DLAPI then DLAPI.DebugLog("EnhaPrio", "points %s %s %s", pointsSpentOne, pointsSpentTwo, pointsSpentThree) end
+if pointsSpentThree > pointsSpentOne and pointsSpentThree > pointsSpentTwo then
+	MyEnhaPrioSpec = "Restoration"
 end
 
 --print(MyEnhaPrioSpec)
@@ -398,9 +403,7 @@ if MyEnhaPrioSpec == "Elemental" then
 
     	FS = function ()
     		-- if there is under 1.5sec left on flame shock on the target
-    		-- if isCastable(Spells.FS) and ranged and fsLeft <= 3 then
-
-    		if isCastable(Spells.FS) and ranged and ((mode == "Enhancement" and hasUF) or (mode == "Elemental")) and fsLeft < 3 and fsLeft > 0 then -- changed
+    		if isCastable(Spells.FS) and ranged and fsLeft < 3 then
     			addToQueue(Spells.FS)
     		end
     	end,
@@ -576,13 +579,11 @@ Actions = {
 		["LB4+"] = function ()
     		if isCastable(Spells.LB) and mwAmount >= 4 then
     		    addToQueue(Spells.LB)
-				if DLAPI then DLAPI.DebugLog("EnhaPrio", "Adding LB4+ to queue") end
     		end
     	end,
     	["LB3+"] = function ()
     		if isCastable(Spells.LB) and mwAmount >= 3 then
     		    addToQueue(Spells.LB)
-				if DLAPI then DLAPI.DebugLog("EnhaPrio", "Adding LB3+ to queue") end
     		end
     	end,
 		FS = function ()
@@ -748,6 +749,10 @@ end
 -- refreshes the queue according to the priorities
 -- check stuff and then run the queue
 function EnhaPrio:refreshQueue()
+	if MyEnhaPrioSpec == "Restoration" then
+		return
+	end
+
 	-- players health percentage
 	health = UnitHealth("player") / (UnitHealthMax("player") / 100)
 
@@ -789,12 +794,8 @@ function EnhaPrio:refreshQueue()
 		elseif name == Spells.EGZ then
 			hasEGZ = true
 			egzLeft = expirationTime - GetTime()
-			-- if DLAPI then DLAPI.DebugLog("EnhaPrio", "Energized for %s seconds", tostring(egzLeft)) end
 		end
 	end
-	--- if not hasEGZ then
-	--- 	if DLAPI then DLAPI.DebugLog("EnhaPrio", "Not Energized") end
-	--- end
 
 	-- targets debuffs (fire shock)
 	noSS = true
@@ -836,7 +837,6 @@ function EnhaPrio:refreshQueue()
 	end
 	totemTimeLeft = 0
 	totemTimeLeft = GetTotemTimeLeft(1)
-	-- if DLAPI and hasTotem and totemName ~= "" then DLAPI.DebugLog("EnhaPrio", "Totem time left is %s for %s", tostring(totemTimeLeft), tostring(totemName)) end
 
 	-- weapon buffs
 	hasMH, _, _, _, hasOH = GetWeaponEnchantInfo()
@@ -861,11 +861,9 @@ function EnhaPrio:refreshQueue()
 
 	local pmode = mode
 	-- AOE stuff
-	-- if DLAPI then DLAPI.DebugLog("EnhaPrio", "AOE mode is %s", tostring(EnhaPrio.db.char.useAOE)) end
 	if pmode == "Enhancement" and EnhaPrio.db.char.useAOE then
 	    pmode = "EnhancementAOE"
 	end
-	-- if DLAPI then DLAPI.DebugLog("EnhaPrio", "pmode is %s", tostring(pmode)) end
   	-- now loop through the actions
 	for i, v in ipairs(Priority[pmode]) do
 		if Actions[v] ~= nil then
@@ -1418,7 +1416,7 @@ function EnhaPrio:OnEnable()
 		mainFrame:Hide()
 		return false
 	else
-		self:ResolveSpec()
+		mode = self:ResolveSpec()
 
 		-- Register chat commands.
 		self:RegisterChatCommand("ep", function() self:OpenOptions() end)
@@ -1467,16 +1465,18 @@ function EnhaPrio:ResolveSpec()
 	-- what spec are we using
 	local nameOne, iconTexture, pointsSpentOne,description,id = GetTalentTabInfo(1)
     local nameTwo, iconTexture, pointsSpentTwo,description,id = GetTalentTabInfo(2)
+	local nameThree, iconTexture, pointsSpentThree,description,id = GetTalentTabInfo(3)
 
-	mode = "Elemental"
+	mode = "Enhancement"
     if pointsSpentOne > pointsSpentTwo then
-       --print("Elemental")
 	   mode = "Elemental"
     end
-    if pointsSpentTwo > pointsSpentOne then
-       --print("Enhancement")
+    if pointsSpentTwo >= pointsSpentOne then
 	   mode = "Enhancement"
     end
+	if pointsSpentThree > pointsSpentOne and pointsSpentThree > pointsSpentTwo then
+		mode = "Restoration"
+	end
 	--if currentSpec == 2 then
 	--	mode = "Enhancement"
 	--elseif currentSpec == 1 then
@@ -1492,7 +1492,7 @@ function EnhaPrio:ResolveSpec()
 	--local _, _, _, _, currentRank = GetTalentInfoByID(16)
 	--talentUF = currentRank
 
-	if mode ~= nil then
+	if mode ~= nil and mode ~= "Restoration" then
 		self:Run()
 		mainFrame:Show()
 	else
