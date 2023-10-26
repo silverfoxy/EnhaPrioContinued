@@ -77,7 +77,8 @@ local Priority = {
 
 		"SR", -- Shamanistic Rage when you have less than 20% mana
 
-		"LB", -- Lightning Bolt if there are 5 Maelstrom stacks
+		"AOECL",
+		"LB5", -- Lightning Bolt if there are 5 Maelstrom stacks
 		"FS", -- Flame Shock if there's less than 1.5 sec left on the dot
 		"MT", -- Magma Totem if you don't have one down
 		"SSb", -- Stormstrike if there's no ss buff on the target
@@ -98,8 +99,8 @@ local Priority = {
 
 		"AOEMT", -- Magma Totem if you don't have one down
 		"AOECL", -- Chain Lightning if its ready
+		"LB5", -- Lightning Bolt if there are 5 Maelstrom stacks
 		"SSb", -- Stormstrike if there's no ss buff on the target
-		"LB4+", -- Lightning Bolt if there are 4+ Maelstrom stacks
 		"FS", -- Flame Shock if there's less than 1.5 sec left on the dot
 		"ES", -- Earth Shock
 		"AOEFN",  -- Fire Nova
@@ -527,7 +528,7 @@ if MyEnhaPrioSpec == "Elemental" then
     		end
     	end,
     	AOECL = function ()
-    	    if isCastable(Spells.CL) and mwAmount >= 4 then
+    	    if isCastable(Spells.CL) and mwAmount >= 5 then
     	        addToQueue(Spells.CL)
     		end
     	end,
@@ -663,7 +664,7 @@ Actions = {
     		end
     	end,
     	AOECL = function ()
-    	    if isCastable(Spells.CL) and mwAmount >= 4 and hasEGZ and egzLeft > 4 then
+    	    if isCastable(Spells.CL) and mwAmount >= 5 then -- and hasEGZ and egzLeft > 4 then -- Disable check for egz since in p4 we use another totem ultimately should check for totem
     	        addToQueue(Spells.CL)
     		end
     	end,
